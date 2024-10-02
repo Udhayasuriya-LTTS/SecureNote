@@ -28,6 +28,7 @@ class EditNoteFragment : Fragment(R.layout.fragment_edit_note), MenuProvider {
     private lateinit var editNoteBinding: FragmentEditNoteBinding
     private lateinit var noteViewModel: NoteViewModel
     private lateinit var currentNote:Note
+    private lateinit var editNoteView: View
     private val cryptoManager: CryptoManager = CryptoManager()
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -45,8 +46,11 @@ class EditNoteFragment : Fragment(R.layout.fragment_edit_note), MenuProvider {
         menuHost.addMenuProvider(this, viewLifecycleOwner, Lifecycle.State.RESUMED)
         noteViewModel = (activity as MainActivity).noteViewModel
         currentNote= arguments?.getSerializable("note") as Note
-        editNoteBinding.editNoteTitle.setText(currentNote.noteTitle)
-        editNoteBinding.editNoteDesc.setText(currentNote.noteDesc)
+       /* editNoteBinding.editNoteTitle.setText(cryptoManager.decryptStr(currentNote.noteTitle))
+        editNoteBinding.editNoteDesc.setText(cryptoManager.decryptStr(currentNote.noteDesc))*/
+         editNoteBinding.editNoteTitle.setText((currentNote.noteTitle))
+        editNoteBinding.editNoteDesc.setText((currentNote.noteDesc))
+        editNoteView = view
         editNoteBinding.addNoteFab.setOnClickListener {
             val noteTitle = editNoteBinding.editNoteTitle.text.toString().trim()
             val noteDesc = editNoteBinding.editNoteDesc.text.toString().trim()
@@ -54,9 +58,14 @@ class EditNoteFragment : Fragment(R.layout.fragment_edit_note), MenuProvider {
             if (noteTitle.isNotEmpty() && noteDesc.isNotEmpty()) {
                 val note = Note(
                     currentNote.id,
-                    cryptoManager.encrypt(noteTitle),
-                    cryptoManager.encrypt(noteDesc)
-                )
+                    cryptoManager.encryptStr(noteTitle),
+                    cryptoManager.encryptStr(noteDesc),
+             )
+                /*val note = Note(
+                    currentNote.id,
+                    noteTitle,
+                    noteDesc,
+                )*/
                 noteViewModel.updateNote(note)
                 view.findNavController().popBackStack(R.id.homeFragment, false)
             } else {
@@ -77,7 +86,21 @@ class EditNoteFragment : Fragment(R.layout.fragment_edit_note), MenuProvider {
             setNegativeButton("Cancel",null)
         }.create().show()
     }
+    private fun saveNote(view: View) {
+        val noteTitle = editNoteBinding.editNoteTitle.text.toString().trim()
+        val noteDesc = editNoteBinding.editNoteDesc.text.toString().trim()
 
+        if (noteTitle.isNotEmpty() && noteDesc.isNotEmpty()) {
+            val note = Note(0, noteTitle, noteDesc)
+            noteViewModel.updateNote(note)
+            Toast.makeText(context, "Note Saved", Toast.LENGTH_SHORT).show()
+            view.findNavController().popBackStack(R.id.homeFragment, false)
+        } else {
+            Toast.makeText(context, "Please enter note title and description", Toast.LENGTH_SHORT)
+                .show()
+        }
+
+    }
     override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
         menu.clear()
         menuInflater.inflate(R.menu.menu_edit_note, menu)
@@ -87,6 +110,10 @@ class EditNoteFragment : Fragment(R.layout.fragment_edit_note), MenuProvider {
         return when (menuItem.itemId) {
             R.id.deleteMenu -> {
                 deleteNote()
+                true
+            }
+            R.id.homeFragment->{
+                saveNote(editNoteView)
                 true
             }
 

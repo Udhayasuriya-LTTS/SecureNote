@@ -4,16 +4,16 @@ package com.example.securenotes.security
 import android.os.Build
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
-import java.util.Base64
+import android.util.Base64
 import android.util.Log
 import androidx.annotation.RequiresApi
-import com.example.securenotes.model.Note
-import kotlinx.serialization.json.Json
+
 import java.lang.IndexOutOfBoundsException
 import java.nio.charset.StandardCharsets
 import java.security.InvalidKeyException
 import java.security.InvalidParameterException
 import java.security.KeyStore
+import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
 import javax.crypto.BadPaddingException
 import javax.crypto.Cipher
@@ -21,6 +21,8 @@ import javax.crypto.IllegalBlockSizeException
 import javax.crypto.KeyGenerator
 import javax.crypto.NoSuchPaddingException
 import javax.crypto.SecretKey
+import javax.crypto.spec.IvParameterSpec
+import javax.crypto.spec.SecretKeySpec
 
 class CryptoManager {
     private val keyStore = KeyStore.getInstance("AndroidKeyStore").apply {
@@ -48,172 +50,59 @@ class CryptoManager {
         }.generateKey()
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
-    fun encrypt(data: String): String {
-        val cipher = Cipher.getInstance(algorithm)
-        val secretKey = getKey()
-        Log.d("KEY", "CHECK $secretKey $data")
-        var encryptedBytes: ByteArray? = ByteArray(10)
+    fun encryptStr(data: String): String {
+        var key = "1234567890ABCDEFGH".toByteArray(Charsets.UTF_8)
+        var ciphertxt = ByteArray(10)
         try {
-            cipher.init(Cipher.ENCRYPT_MODE, secretKey)
+            val sha: MessageDigest = MessageDigest.getInstance("SHA-1")
+            key = sha.digest(key)
+            key = key.copyOf(16)
+            val secretKeySpec = SecretKeySpec(key, algorithm)
+            val cipher = Cipher.getInstance("AES/CBC/PKCS5PADDING")
+            val ivParameterSpec =
+                IvParameterSpec(ByteArray(16)) // Use the same IV as used in encryption
+            cipher.init(Cipher.DECRYPT_MODE, secretKeySpec, ivParameterSpec)
+            val input = data.toByteArray(Charsets.UTF_8)
+            ciphertxt = cipher.doFinal(input)
+        } catch (e: Exception) {
+            Log.e("ERROR", "$e.message")
+        }
+        return Base64.encodeToString(ciphertxt, Base64.NO_WRAP)
+    }
 
-            encryptedBytes = cipher.doFinal(data.toByteArray())
+    fun decryptStr(data: String): String {
+         var key = ""
+        var decryptedText = ""
+        try {
+            /*val sha: MessageDigest = MessageDigest.getInstance("SHA-1")
+            key = sha.digest(key)
+            key = key.copyOf(16)*/
+            val secretKeySpec = SecretKeySpec(key.toByteArray(), algorithm)
+            val cipher = Cipher.getInstance("AES/CBC/PKCS5PADDING")
+            val iv = cipher.iv
+            cipher.init(Cipher.DECRYPT_MODE, secretKeySpec, IvParameterSpec(iv))
+
+            // Check if data is null or empty
+                val decodedData = Base64.decode(data, Base64.DEFAULT)
+            if (decodedData.contentEquals(byteArrayOf(0, 0, 0, 0, 0, 0, 0, 0, 0))) {
+                Log.e("Error", "Decoding failed: invalid Base64 encoding")
+            } else {
+                // Process the decoded data
+                val decryptedData = cipher.doFinal(decodedData)
+
+                // Process the decrypted data
+                decryptedText = String(decryptedData, Charsets.UTF_8)
+                Log.d("Decrypted Text", decryptedText)
+            }
+
+                // Perform the decryption
+
 
         } catch (e: Exception) {
-            when (e) {
-                is InvalidKeyException ->
-                    println("invalid secret key")
-
-                is InvalidParameterException ->
-                    println("invalid parameter")
-
-                is NoSuchPaddingException ->
-                    println("Padding Exception")
-
-                is NoSuchAlgorithmException ->
-                    println("Algorithm Exception")
-
-                is IndexOutOfBoundsException ->
-                    println("Attempt to get length of null array")
-
-                is IllegalStateException ->
-                    println("cipher not Initialized")
-
-                is NullPointerException ->
-                    println("Null input data")
-
-                is BadPaddingException ->
-                    println("incorrect Padding or corrupted ciphertext")
-
-                is IllegalBlockSizeException ->
-                    println("input data size exceeds block size")
-
-                else ->
-                    println("unKnown error:$e")
-
-            }
-
+            Log.e("Error", "Error during decryption: ${e.message}")
         }
-        Log.d("ENCRYPT",Base64.getEncoder().encodeToString(encryptedBytes)
-        )
-
-        return Base64.getEncoder().encodeToString(encryptedBytes)
-
+        return decryptedText
     }
-    @RequiresApi(Build.VERSION_CODES.O)
-    fun decrypt(encryptedData:String):String{
-        val cipher=Cipher.getInstance(algorithm)
-        val secretKey=getKey()
-        var decryptedBytes = ByteArray(10)
-        if(encryptedData.isNotEmpty()) {
-            try {
-                cipher.init(Cipher.DECRYPT_MODE, secretKey)
-                decryptedBytes = cipher.doFinal(Base64.getDecoder().decode(encryptedData))
-            } catch (e: Exception) {
-                when (e) {
-                    is InvalidKeyException ->
-                        println("invalid secret key")
-
-                    is InvalidParameterException ->
-                        println("invalid parameter")
-
-                    is NoSuchPaddingException ->
-                        println("Padding Exception")
-
-                    is NoSuchAlgorithmException ->
-                        println("Algorithm Exception")
-
-                    is IndexOutOfBoundsException ->
-                        println("Attempt to get length of null array")
-
-                    is IllegalStateException ->
-                        println("cipher not Initialized")
-
-                    is NullPointerException ->
-                        println("Null input data decrypt")
-
-                    is BadPaddingException ->
-                        println("incorrect Padding or corrupted ciphertext")
-
-                    is IllegalBlockSizeException ->
-                        println("input data size exceeds block size")
-
-                    else ->
-                        println("unKnown error:$e")
-
-                }
-
-            }
-        }else{
-            Log.d("ERROR","NO DATA")
-        }
-        Log.d("ERROR","STRING $decryptedBytes")
-
-
-        return  String(decryptedBytes)
-
-    }
-    /*fun decrypt(encryptedData: List<Note>): List<Note> {
-        val decryptedData = mutableListOf<Note>()
-        val cipher = Cipher.getInstance(algorithm)
-        val secretKey = getKey()
-
-        for (data in encryptedData) {
-
-            val str=data.toString()
-            Log.d("ERROR",str)
-
-            try {
-                cipher.init(Cipher.DECRYPT_MODE, secretKey)
-                var decryptedBytes: ByteArray
-                data.let {
-                    decryptedBytes = Base64.decode(str, Base64.DEFAULT)
-                }
-
-                Log.d("ERROR", "decyp$decryptedBytes")
-                val json = String(cipher.doFinal(decryptedBytes))
-                val note = Json.decodeFromString<Note>(json)
-                decryptedData.add(note)
-            } catch (e: Exception) {
-                when (e) {
-                    is InvalidKeyException ->
-                        println("invalid secret key")
-
-                    is InvalidParameterException ->
-                        println("invalid parameter")
-
-                    is NoSuchPaddingException ->
-                        println("Padding Exception")
-
-                    is NoSuchAlgorithmException ->
-                        println("Algorithm Exception")
-
-                    is IndexOutOfBoundsException ->
-                        println("Attempt to get length of null array")
-
-                    is IllegalStateException ->
-                        println("cipher not Initialized")
-
-                    is NullPointerException ->
-                        println("Null input data decrypted")
-
-                    is BadPaddingException ->
-                        println("incorrect Padding or corrupted ciphertext")
-
-                    is IllegalBlockSizeException ->
-                        println("input data size exceeds block size")
-
-                    else ->
-                        println("unKnown error:$e")
-
-                }
-            }
-        }
-
-        return decryptedData
-
-    }*/
-
     companion object {
         private const val ALGORITHM = KeyProperties.KEY_ALGORITHM_AES
         private const val BLOCK_MODE = KeyProperties.BLOCK_MODE_CBC

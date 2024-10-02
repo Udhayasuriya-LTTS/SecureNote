@@ -44,8 +44,10 @@ class NoteAdapter: RecyclerView.Adapter<NoteAdapter.NoteViewHolder>() {
     override fun onBindViewHolder(holder: NoteViewHolder, position: Int) {
       val currentNote=differ.currentList[position]
 
-        holder.itemBinding.noteTitle.text=cryptoManager.decrypt(currentNote.noteTitle)
-        holder.itemBinding.noteDesc.text=cryptoManager.decrypt(currentNote.noteDesc)
+        holder.itemBinding.noteTitle.text=cryptoManager.decryptStr(currentNote.noteTitle)
+        holder.itemBinding.noteDesc.text=cryptoManager.decryptStr(currentNote.noteDesc)
+       /* holder.itemBinding.noteTitle.text=currentNote.noteTitle
+        holder.itemBinding.noteDesc.text=currentNote.noteDesc*/
 
         holder.itemView.setOnClickListener{
             val bundle=Bundle()

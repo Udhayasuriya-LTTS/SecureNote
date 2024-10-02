@@ -51,7 +51,8 @@ class AddNoteFragment : Fragment(R.layout.fragment_add_note), MenuProvider {
         val noteDesc = addNoteBinding.addNoteDesc.text.toString().trim()
 
         if (noteTitle.isNotEmpty() && noteDesc.isNotEmpty()) {
-            val note = Note(0, cryptoManager.encrypt(noteTitle), cryptoManager.encrypt(noteDesc))
+            val note = Note(0, cryptoManager.encryptStr(noteTitle), cryptoManager.encryptStr(noteDesc))
+            /*val note = Note(0, noteTitle, noteDesc)*/
             noteViewModel.addNote(note)
             Toast.makeText(addNoteView.context, "Note Saved", Toast.LENGTH_SHORT).show()
             view.findNavController().popBackStack(R.id.homeFragment, false)

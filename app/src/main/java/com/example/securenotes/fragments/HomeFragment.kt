@@ -1,6 +1,7 @@
 package com.example.securenotes.fragments
 
 import android.os.Bundle
+import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.Menu
@@ -80,11 +81,10 @@ class HomeFragment : Fragment(R.layout.fragment_home), SearchView.OnQueryTextLis
         }
     }
 
-    fun searchNote(query: String?){
-        val searchQuery="%$query"
-        noteViewModel.searchNote(searchQuery).observe(this){list->
+    fun searchNote(query: String?) {
+        val searchQuery = "%$query"
+        noteViewModel.searchNote(searchQuery).observe(this) { list ->
             noteAdapter.differ.submitList(list)
-
         }
     }
 
@@ -93,7 +93,7 @@ class HomeFragment : Fragment(R.layout.fragment_home), SearchView.OnQueryTextLis
     }
 
     override fun onQueryTextChange(newText: String?): Boolean {
-        if(newText!=null){
+        if (newText != null) {
             searchNote(newText)
         }
         return true
@@ -106,9 +106,9 @@ class HomeFragment : Fragment(R.layout.fragment_home), SearchView.OnQueryTextLis
 
     override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
         menu.clear()
-        menuInflater.inflate(R.menu.home_menu,menu)
-        val menuSearch=menu.findItem(R.id.searchMenu).actionView as SearchView
-        menuSearch.isSubmitButtonEnabled=false
+        menuInflater.inflate(R.menu.home_menu, menu)
+        val menuSearch = menu.findItem(R.id.searchMenu).actionView as SearchView
+        menuSearch.isSubmitButtonEnabled = false
         menuSearch.setOnQueryTextListener(this)
     }
 
